@@ -3,20 +3,26 @@ title: Analysis of weather events which most harmful with respect to population 
   and  have the greatest economic consequences across the United States.
 author: "Nariman Daniyarov"
 date: "25 12 2020"
-output: html_document
+output: 
+        html_document:
+        keep_md: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.  
 The basic goal of this project is to explore the NOAA Storm Database and answer next basic questions:  
-1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
-2. Across the United States, which types of events have the greatest economic consequences?
+1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?  
+2. Across the United States, which types of events have the greatest economic consequences?  
+The data for this project come in the form of a comma-separated-value file compressed via the bzip2 algorithm to reduce its size. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.  
+For this project we use some functions from dplyr package. Also, for plotting we use ggplot2 library.
+
 
 ## Data Processing
 Include required libraries
-```{r}
+```{r message = FALSE}
 library(dplyr)
 library(ggplot2)
 ```
@@ -76,12 +82,6 @@ percentage_of_top_10 <- sum(hd_data[1:10,"HEALTHDMG"]) / sum(hd_data[,"HEALTHDMG
 ```
 
 
-**Total sum of TOP-10**
-```{r}
-total_sum_health_dmg_top_10 <- sum(hd_data[1:10,"HEALTHDMG"])
-```
-
-
 **We should subset only first 10 harmful weather events to construct a graph**
 ```{r}
 hd_data <- hd_data[1:10,] # selected only first 10 rows
@@ -95,7 +95,7 @@ ggplot(hd_data, aes(x = reorder(EVTYPE, -HEALTHDMG), y = HEALTHDMG)) +
         geom_bar(stat = "identity", color = "black", fill = "orangered3") +
         theme(axis.text.x = element_text(face = "bold", color = "orangered3", angle = 90),
               axis.text.y = element_text(face = "bold", color = "orangered3")) + 
-        labs(title = "TOP 10 SEVERE WEATHER EVENTS", x = "WEATHER EVENTS", y = "FATALITIES + INJURIES")
+        labs(title = "TOP-10 weather events dangerous for human life", x = "WEATHER EVENTS", y = "FATALITIES + INJURIES")
 ```
 
 
@@ -120,7 +120,7 @@ unique(econdmg_data$CROPDMGEXP) # unique values in CROPDMGEXP
 These alphabetical characters used to signify magnitude include “K” for thousands, “M” for millions, and “B” for billions.
 ```{r echo=FALSE}
 #unique(unlist(econdmg_data[, c("PROPDMGEXP", "CROPDMGEXP")]))
-tmp_df <- data.frame("ExponentChar" = c("B", "M, m", "K, k", "H, h", "0, +, -, ?", "\" \""), 
+tmp_df <- data.frame("ExponentChar" = c("B", "M, m", "K, k", "H, h", "0, +, -, ?", "\"\""), 
                      "ExponentMagnitude" = c(9, 6, 3, 2, 1, 0))
 knitr::kable(tmp_df, align = "l")
 ```
@@ -136,7 +136,8 @@ econdmg_data <- econdmg_data %>% mutate(
          PROPDMGEXP %in% c("M", "m")  ~ "6",
          PROPDMGEXP %in% c("H", "h")  ~ "2",
          PROPDMGEXP %in% c("0", "+", "-", "?") ~ "1", 
-         PROPDMGEXP == "" ~ "0")
+         PROPDMGEXP == "" ~ "0",
+         TRUE ~ PROPDMGEXP)
         ) %>% mutate(PROPDMGEXP = as.numeric(PROPDMGEXP))
 
 # 2. CROPDMGEXP
@@ -146,9 +147,9 @@ econdmg_data <- econdmg_data %>% mutate(
          CROPDMGEXP == "B" ~ "9",
          CROPDMGEXP %in% c("M", "m")  ~ "6",
          CROPDMGEXP %in% c("0", "?") ~ "1", 
-         CROPDMGEXP == "" ~ "0")
+         CROPDMGEXP == "" ~ "0",
+         TRUE ~ CROPDMGEXP)
         ) %>% mutate(CROPDMGEXP = as.numeric(CROPDMGEXP))
-
 ```
 
 
@@ -168,10 +169,10 @@ econdmg_data <- econdmg_data %>%
         arrange(desc(ECONDMG))
 ```
 
+
 **Percentage of the TOP-10 amount in the total amount**
 ```{r}
-percentage_of_top_10_econ_dmg <- 
-        sum(econdmg_data[1:10,"ECONDMG"]) / sum(econdmg_data[,"ECONDMG"]) * 100
+percentage_of_top_10_econ_dmg <- sum(econdmg_data[1:10, "ECONDMG"])/sum(econdmg_data$ECONDMG)*100
 ```
 
 **Total sum of TOP-10**
@@ -191,10 +192,15 @@ print.data.frame(econdmg_data_to_plot)
 
 ```{r economic-dmg-figure}
 ggplot(econdmg_data_to_plot, aes(x = reorder(EVTYPE, -ECONDMG), y = ECONDMG/1000000)) +
-        geom_bar(stat = "identity", color = "black", fill = "steelblue4") +
+        geom_bar(stat = "identity", color = "black", fill = "cyan") +
         theme(axis.text.x = element_text(face = "bold", color = "steelblue4", angle = 90),
               axis.text.y = element_text(face = "bold", color = "steelblue4")) + 
         labs(title = "Economic impact of TOP-10 severe weather events", x = "WEATHER EVENTS", y = "Total Economic Damage, 1E-6")
+```
 
 
 ## Results
+
+**The result of the analysis on question 1**. Analysis gives us the top-10 most harmful weather events (Tornado, Excessive Heat, TSTM wind, Flood, Lightining, Heat, Flash flood, Ice storm, Thunderstorm wind, Winter storm) to population health, and the total percentage of them in total amounts is **`r round(percentage_of_top_10, 2)`%**. And most harmful from top-10 severe weather evets is **Tornado**.
+
+**The result of the analysis on question 2**. There are Top-10 weather events which have the greatest economic consequences. Total amount of damage top-10 weather events is **`r round(total_sum_econ_dmg_top_10/(10^9), 2)` Billion USD**. And the percentage of them in total amounts is **`r round(percentage_of_top_10_econ_dmg, 2)`%**. And finally we see that **Flood** is the greatest weather event which has big economic consequences across USA.
