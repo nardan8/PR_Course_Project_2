@@ -18,9 +18,8 @@ The basic goal of this project is to explore the NOAA Storm Database and answer 
 Include required libraries
 ```{r}
 library(dplyr)
+library(ggplot2)
 ```
-
-
 The data can be download as follow:
 ```{r}
 data_url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
@@ -44,25 +43,49 @@ For further work with data, we need to display a list of column names
 colnames(raw_data)
 ```
 
-**#### Question 1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?**
-For purpose of this, we have to subset the data selecting three columns
+#### **Question 1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?**
+**For purpose of this, we have to subset the data by selecting three columns**
 ```{r}
 hd_data <- select(raw_data, EVTYPE,  FATALITIES, INJURIES)
+head(hd_data)
 ```
-Check for NAs on FATALITIES and INJURIES columns
+**Check for NAs on FATALITIES and INJURIES columns**
 ```{r}
 sum(is.na(hd_data$FATALITIES))
 sum(is.na(hd_data$INJURIES))
 ```
-Group data by severe weather types, and summarise values on FATALITIES and INJURIES
+**Group data by severe weather types, then summarise values on FATALITIES and INJURIES**
 ```{r message=FALSE}
-hd_data %>% 
-        group_by(EVTYPE) %>% 
-        summarise(FATALITIES = sum(FATALITIES), INJURIES = sum(INJURIES)) %>% 
-        arrange(desc(FATALITIES, INJURIES))
+hd_data <- hd_data %>% 
+                group_by(EVTYPE) %>% 
+                summarise(FATALITIES = sum(FATALITIES), INJURIES = sum(INJURIES))
+head(hd_data)
+```
+**Now we should get the total health damage by summing values on FATALITIES and INJURIES columns, and store the results on new columns HEALTHDMG, and perform sorting on descending order**
+```{r }
+hd_data <- hd_data %>% 
+        mutate(HEALTHDMG = FATALITIES + INJURIES) %>% 
+        select(EVTYPE, HEALTHDMG) %>% 
+        arrange(desc(HEALTHDMG))
+head(hd_data, 10)
+```
+**We should subset only first 10 harmful weather events to construct a graph**
+```{r}
+percentage_of_top_10 <- sum(hd_data[1:10,"HEALTHDMG"]) / sum(hd_data[,"HEALTHDMG"]) * 100
+hd_data <- hd_data[1:10,] # selected only first 10 rows
+dim(hd_data) 
+```
+
+**Constructing a graph to determine which severe weather events are most harmful with respect to population health across the USA**
+
+```{r health-dmg-figure}
+ggplot(hd_data, aes(x = reorder(EVTYPE, -HEALTHDMG), y = HEALTHDMG)) +
+        geom_bar(stat = "identity", color = "black", fill = "orangered3") +
+        theme(axis.text.x = element_text(face = "bold", color = "orangered3", angle = 90)) + 
+        labs(title = "TOP 10 MOST HARMFUL TO POPULATION HEALTH SEVERE WEATHER EVENTS", x = "WEATHER EVENTS", y = "FATALITIES + INJURIES")
 ```
 
 
 
 
-**#### Question 2. Across the United States, which types of events have the greatest economic consequences?**
+#### **Question 2. Across the United States, which types of events have the greatest economic consequences?**
